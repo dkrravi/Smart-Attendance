@@ -1,0 +1,313 @@
+{
+  "name": "n8n-attendance",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -480,
+        0
+      ],
+      "id": "ca6d1951-f98a-4c02-98ab-4b678516b615",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const row = item.json;\n  const dates = ['2025-04-28', '2025-04-29', '2025-04-30', '2025-05-01', '2025-05-02'];\n\n  const presentStatuses = ['present', 'p'];\n  const presentDays = dates.filter(date => {\n    const status = (row[date] || '').toLowerCase();\n    return presentStatuses.includes(status);\n  }).length;\n\n  const attendancePercentage = (presentDays / dates.length) * 100;\n\n  return {\n    json: {\n      Rollno: row[\"Rollno\"],\n      Name: row[\"Name\"],\n      StudentEmail: row[\"Student Email\"],\n      TeacherEmail: row[\"Teachers Email\"],\n      ParentsMobileNo: row[\"Parents Mobile No\"],\n      attendancePercentage: attendancePercentage.toFixed(2),\n      alert: attendancePercentage < 75 ? \"Yes\" : \"No\"\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        80
+      ],
+      "id": "b92e14ef-4992-4183-bc47-bacb2c7eb0b4",
+      "name": "Calculate Attendance %"
+    },
+    {
+      "parameters": {
+        "jsCode": "const students = items.map(item => {\n  const s = item.json;\n  return `${s.Name} - ${s.attendancePercentage}%`;\n});\n\nreturn [{\n  json: {\n    teacherEmail: \"dhanyafab@gmail.com\",\n    summary: students.join('\\n')\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        -112
+      ],
+      "id": "81882f69-fa1a-4042-81b0-372dcb1ec255",
+      "name": "Create Summary for Teacher"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.StudentEmail }}",
+        "subject": "Attendance Alert: Your Current Attendance is Below 75%",
+        "message": "=<p>Dear {{ $json.Name }},</p>\n\n<p>We would like to inform you that your current attendance percentage is <strong>{{ $json.attendancePercentage }}%</strong>.</p>\n\n<p>This is below the expected threshold of <strong>75%</strong>.</p>\n\n<p>Please make the necessary efforts to improve your attendance and stay on track with your courses.</p>\n\n<p>Best regards,<br>\nDr. N.G.P Arts and Science College</p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        704,
+        80
+      ],
+      "id": "a0d2e670-05a0-43fc-b0db-90e6486954e0",
+      "name": "Send Alert to Student",
+      "webhookId": "f9173cd1-a015-43a9-889a-d988fa938836",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Q50amKtVLGOd6jlM",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.teacherEmail }}",
+        "subject": "Students Alert Summary",
+        "message": "=<p>Dear Teacher,</p>\n\n<p>The following students currently have attendance below the required threshold of <strong>75%</strong>:</p>\n\n<ul>\n  {{ $json.summary.split('\\n').map(student => `<li>${student}</li>`).join('') }}\n</ul>\n\n<p>Please take note and provide the necessary guidance to help these students improve their attendance.</p>\n\n<p>Best regards,<br>\nDr. N.G.P. Arts and Science College</p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        704,
+        -112
+      ],
+      "id": "0239caad-f897-4e97-91f7-1f3d9b8af254",
+      "name": "Send Summary to Teacher",
+      "webhookId": "89532736-c9b5-4950-938b-8ef73b232b90",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Q50amKtVLGOd6jlM",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1I_iHaL_bCXF4HCH1rNGFvYH69qt-n1BLRWRKhShUwsY",
+          "mode": "list",
+          "cachedResultName": "II-PG CSDA Attendance Register",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1I_iHaL_bCXF4HCH1rNGFvYH69qt-n1BLRWRKhShUwsY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1I_iHaL_bCXF4HCH1rNGFvYH69qt-n1BLRWRKhShUwsY/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -208,
+        0
+      ],
+      "id": "f2408e4e-5f06-42c5-970b-9ec00d294a5b",
+      "name": "Students Attendance Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "dLx6NvRblKhUudEg",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "Rollno",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        0,
+        80
+      ],
+      "id": "c34fe797-f7ba-4b0b-90d3-ca5a7eaa3b2d",
+      "name": "Merge",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Wm56Qc3dHDykXlAAWWNmYvBln5GB07BKXRTx8gxWfT0",
+          "mode": "list",
+          "cachedResultName": "Contact Sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Wm56Qc3dHDykXlAAWWNmYvBln5GB07BKXRTx8gxWfT0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Wm56Qc3dHDykXlAAWWNmYvBln5GB07BKXRTx8gxWfT0/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -208,
+        208
+      ],
+      "id": "f0cd48a8-fa9e-4afe-9531-2c320df5c34b",
+      "name": "Contact Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "dLx6NvRblKhUudEg",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d19ae85d-fc3f-4b3d-b488-4d6929efe0b0",
+              "leftValue": "={{ $json.alert }}",
+              "rightValue": "Yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        352,
+        80
+      ],
+      "id": "beaa728b-bf25-4549-812b-3b45a4f9bcac",
+      "name": "Students Below 75%"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Students Attendance Sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Contact Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Attendance %": {
+      "main": [
+        [
+          {
+            "node": "Students Below 75%",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Summary for Teacher": {
+      "main": [
+        [
+          {
+            "node": "Send Summary to Teacher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Students Attendance Sheet": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contact Sheet": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Calculate Attendance %",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Students Below 75%": {
+      "main": [
+        [
+          {
+            "node": "Send Alert to Student",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Summary for Teacher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d40c9bce-d056-48ee-8a93-6bdeeab7f114",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "64dd4211ba6f365592ac78b7e6d0f8e0e37b593cd2a760c4d8c14bb6bc31808f"
+  },
+  "id": "HUOjcJ7L84W9zOJu",
+  "tags": []
+}
